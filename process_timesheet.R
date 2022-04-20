@@ -24,14 +24,18 @@ charges %>%
   ) %>% 
   ungroup() %>% 
   mutate(
-    balance = cumsum(weekhours) - seq(n()) * 36  
+    balance = cumsum(weekhours) - (seq(n()) - 1) * 36  
   ) %>% 
   ggplot() +
-  labs(fill = "", colour = "") +
-  geom_col(aes(x = period, y = weekhours, fill = "Week hours")) +
-  geom_hline(yintercept = 36, linetype = 2) +
-  geom_line(aes(x = period, y = balance, colour = "Balance")) +
-  geom_point(aes(x = period, y = balance, colour = "Balance", fill = "Balance")) 
+  labs(fill = "", colour = "", x = "Week", y = "Hours") +
+  geom_col(aes(x = period, y = weekhours, fill = "Week Hours")) +
+  geom_hline(yintercept = seq(7.2,36,7.2), linetype = 2) +
+  geom_line(aes(x = period, y = balance, colour = "Balance"), size = 1.5) +
+  geom_point(aes(x = period, y = balance, colour = "Balance", fill = "Balance"), size = 4) +
+  scale_x_datetime(date_breaks = "1 weeks", date_labels = "%e %b") +
+  guides(colour = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_y_continuous(breaks = seq(7.2,36,7.2))
 
 print(last_plot())
 
