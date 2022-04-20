@@ -1,14 +1,14 @@
 
 # timesheet analysis 
 
-suppressWarnings({
-library(readxl)
-library(janitor)
-library(dplyr)
-library(tidyr)
-library(lubridate)
-library(ggplot2)
-})
+suppressMessages({suppressWarnings({
+  library(readxl)
+  library(janitor)
+  library(dplyr)
+  library(tidyr)
+  library(lubridate)
+  library(ggplot2)
+})})
 
 path <- "Timesheet2022.xlsx"
 done <- ymd("2022-04-11") # monday
