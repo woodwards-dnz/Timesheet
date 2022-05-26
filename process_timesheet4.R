@@ -128,12 +128,14 @@ monthly <- combined %>%
     budgeted = max(0, median(budgeted, na.rm = TRUE), na.rm = TRUE),
     hours = max(0, sum(hours, na.rm = TRUE)),
     profile = round(median(length) * 119 / 8), # target budget per month
+    .groups = "keep"
   ) %>% 
   group_by(month) %>% 
   mutate(
     project = str_extract(project2, "[A-Za-z]+"),
     budgeted2 = round(pmax(0, budgeted * profile / sum(budgeted), na.rm = TRUE),1)
-  )
+  ) %>% 
+  ungroup()
   
 ggplot(monthly) +
   theme_grey() +
