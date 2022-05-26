@@ -1,15 +1,14 @@
 
 # timesheet analysis ####
 
-suppressMessages({suppressWarnings({
-  library(readxl)
-  library(janitor)
-  library(dplyr)
-  library(tidyr)
-  library(lubridate)
-  library(ggplot2)
-  library(ggthemes)
-})})
+library(readxl)
+library(janitor)
+library(plyr) # avoid dplyr bug
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(ggplot2)
+library(ggthemes)
 
 
 # options ####
@@ -75,16 +74,18 @@ print(last_plot())
 
 # timesheet ####
 timesheet <- combined %>% 
-  group_by(period, date, project, subproject, code, subcode) %>% 
+  mutate(
+    wday = wday(date, week_start = 1, label = TRUE, abbr = TRUE),
+    date = NULL,
+  ) %>% 
+  arrange(period, wday, project, subproject, code, subcode) %>% 
+  group_by(period, wday, project, subproject, code, subcode) %>% 
   summarize(
     hours = sum(hours),
     .groups = "keep"
   ) %>% 
   ungroup() %>% 
-  mutate(
-    wday = wday(date, week_start = 1, label = TRUE, abbr = TRUE),
-  ) %>% 
-  pivot_wider(names_from = "wday", values_from = "hours") %>% 
+  pivot_wider(id_cols = all_of(c("period", "project", "subproject", "code", "subcode")), names_from = "wday", values_from = "hours") %>% 
   mutate(
     Total = rowSums(across(any_of(wdays)), na.rm = TRUE) 
   ) %>% 
@@ -101,6 +102,7 @@ timesheet <- combined %>%
 print(timesheet)
 
 
+stop()
 
 # monthly project totals ####
 monthly <- projects %>% 
