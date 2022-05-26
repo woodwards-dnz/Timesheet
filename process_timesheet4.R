@@ -105,46 +105,30 @@ print(timesheet)
 stop()
 
 # monthly project totals ####
-monthly <- projects %>% 
-  dplyr::select(project, subproject, startdate, enddate, code, subcode, budgeted, profile) %>% 
-  mutate(
-    code2 = paste(code, pmax(subcode, "", na.rm = TRUE)),
-    project2 = paste(project, subproject),
-    budgeted = if_else(is.na(budgeted), 0, budgeted),
-  ) %>% 
-  dplyr::select(project2, startdate, enddate, code2, budgeted, profile)
-  
-charges2 <- charges %>%
-  dplyr::select(date, project, subproject, hours) %>% 
+monthly <- combined %>%
   mutate(
     project2 = paste(project, subproject),
-    month = dmy(paste("1", month(date), year(date)))
+    code2 = paste(code, subcode),
   ) %>% 
-  group_by(month, project2) %>% 
-  summarise(
-    hours = sum(hours, na.rm = TRUE),
-  ) %>% 
-  ungroup() %>% 
-  complete(month, project2) 
-
-monthly2 <- left_join(monthly, charges2) %>% 
+  dplyr::select(year, month, project2, code2, hours, budgeted, length) %>% 
   complete(project2, month) %>% 
-  dplyr::filter(!is.na(month)) %>% # drop unused codes
-  dplyr::select(-startdate, -enddate) %>% 
   group_by(month) %>% 
   mutate(
-    profile = median(profile, na.rm = TRUE)
+    length = mean(length, na.rm = TRUE),
+    year = if_else(month(month) >= 6, year(month), year(month) - 1), 
   ) %>% 
-  group_by(month, project2, code2) %>% 
+  group_by(year, project2) %>% 
+  mutate(
+    code2 = max(code2, na.rm = TRUE),
+  ) %>% 
+  group_by(month, length, project2, code2) %>% 
   summarise(
     budgeted = pmax(0, median(budgeted, na.rm = TRUE), na.rm = TRUE),
     hours = pmax(0, sum(hours, na.rm = TRUE)),
-    profile = median(profile, na.rm = TRUE),
+    profile = length * 114 / 8,
   ) %>% 
-  arrange(project2, code2, month) %>% 
-  mutate(
-    code2 = if_else(is.na(code2), "No", code2),
-  ) %>% 
+  arrange(project2, code2, month) 
+  
   
     
 
