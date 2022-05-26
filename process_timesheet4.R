@@ -103,8 +103,6 @@ timesheet <- combined %>%
 print(timesheet)
 
 
-stop()
-
 # monthly project totals ####
 monthly <- combined %>%
   mutate(
