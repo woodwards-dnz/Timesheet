@@ -1,6 +1,7 @@
 
 # timesheet analysis ####
 
+library(stringr)
 library(readxl)
 library(janitor)
 library(plyr) # avoid dplyr bug
@@ -109,70 +110,39 @@ monthly <- combined %>%
   mutate(
     project2 = paste(project, subproject),
     code2 = paste(code, subcode),
+    npt = project %in% c("Admin", "Leave"),
   ) %>% 
+  arrange(month, project2, code2) %>% 
+  dplyr::filter(!npt) %>% 
   dplyr::select(year, month, project2, code2, hours, budgeted, length) %>% 
-  complete(project2, month) %>% 
+  complete(project2, month) %>% # fill gaps
   group_by(month) %>% 
   mutate(
-    length = mean(length, na.rm = TRUE),
+    length = mean(length, na.rm = TRUE), # hours per day
     year = if_else(month(month) >= 6, year(month), year(month) - 1), 
   ) %>% 
   group_by(year, project2) %>% 
   mutate(
-    code2 = max(code2, na.rm = TRUE),
+    code2 = max(code2, na.rm = TRUE), # fill gaps
   ) %>% 
   group_by(month, length, project2, code2) %>% 
   summarise(
-    budgeted = pmax(0, median(budgeted, na.rm = TRUE), na.rm = TRUE),
-    hours = pmax(0, sum(hours, na.rm = TRUE)),
-    profile = length * 114 / 8,
+    budgeted = max(0, median(budgeted, na.rm = TRUE), na.rm = TRUE),
+    hours = max(0, sum(hours, na.rm = TRUE)),
+    profile = round(median(length) * 119 / 8), # target budget per month
   ) %>% 
-  arrange(project2, code2, month) 
-  
-  
-    
-
-
-  
-# monthly project totals 
-# FIXME not correct ####
-temp2 <- combined %>% 
-  mutate(
-    date = if_else(month(date) == 2 & year(date) == 2022, dmy_hm("1 03 2022 0:00"), date), # adjust Feb 22
-    month = dmy(paste(1, month(date), year(date))),
-    target = 101 * length / 7.2, # FIXME this formula is probably wrong ####
-  ) %>% 
-  complete(project, month, fill = list(hours = 0)) %>% 
-  drop_na(month) %>% 
-  group_by(project, month) %>% 
-  summarise(
-    monthbudget = median(budgeted, na.rm = TRUE),
-    monthhours = sum(hours, na.rm = TRUE),
-    monthtarget = median(target, na.rm = TRUE),
-  ) %>% 
-  group_by(project) %>% 
-  mutate(
-    monthbudget = pmax(0,median(monthbudget, na.rm = TRUE), na.rm = TRUE),
-    monthtarget = pmax(0,median(monthtarget, na.rm = TRUE), na.rm = TRUE),
-    keep = !all(monthbudget == 0 & monthhours == 0),
-  ) %>% 
-  ungroup() %>% 
-  arrange(month, desc(monthbudget)) %>% 
-  mutate(project = factor(project, levels = unique(project))) %>% 
   group_by(month) %>% 
   mutate(
-    nonproj = project %in% c("Admin", "Leave"),
-    scale = monthtarget / sum(monthbudget[!nonproj]),
-    monthbudget2 = ifelse(nonproj, monthbudget, monthbudget * scale),
-  ) %>% 
-  ungroup()
-temp2 %>% 
-  dplyr::filter(keep) %>% 
-  ggplot() +
+    project = str_extract(project2, "[A-Za-z]+"),
+    budgeted2 = round(pmax(0, budgeted * profile / sum(budgeted), na.rm = TRUE),1)
+  )
+  
+ggplot(monthly) +
   theme_grey() +
   labs(fill = "Project hours", colour = "", x = "Month", y = "Hours") +
-  geom_col(aes(x = month, y = monthhours, fill = project), position = "dodge") +
-  geom_col(aes(x = month, y = monthbudget2, fill = project), alpha = 0, colour = "black", position = "dodge") +
+  geom_col(aes(x = month, y = hours, fill = project), position = "dodge") +
+  geom_col(aes(x = month, y = budgeted, fill = project), alpha = 0, colour = "black", position = "dodge", linetype = 2) +
+  geom_col(aes(x = month, y = budgeted2, fill = project), alpha = 0, colour = "black", position = "dodge") +
   scale_x_date(date_breaks = "1 months", date_labels = "%e %b") +
   guides(colour = "none") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
