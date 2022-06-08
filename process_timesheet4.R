@@ -14,7 +14,7 @@ library(ggthemes)
 
 # options ####
 path <- "Timesheet2022.xlsx"
-done <- ymd("2022-05-16") # monday
+done <- ymd("2022-05-30") # monday
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
 
@@ -23,6 +23,7 @@ charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% d
   mutate(
     date = as_date(date),
     period = as_date(period),
+    date = pmax(date, period), # merge Feb 2022 dates into March 2022
     month = dmy(paste("1", month(date), year(date))),
     year = if_else(month(date) >= 6, year(date), year(date) - 1),
   ) %>% 
@@ -35,19 +36,26 @@ projects <- read_excel(path, sheet = "Projects", skip = 1) %>% clean_names() %>%
     startdate = as_date(startdate),
     enddate = as_date(enddate),
     subcode = if_else(is.na(subcode), "", as.character(subcode)),
-    year = if_else(month(startdate) >= 6, year(startdate), year(startdate) - 1),
     enddate = if_else(is.na(enddate), max(enddate, na.rm = TRUE), enddate)
   ) %>% 
   dplyr::select(year, startdate, enddate, project, subproject, code, subcode, budgeted, profile)
 
 
 # combine
-combined <- left_join(charges, projects, by = c("year", "project", "subproject")) %>% 
+blanks <- charges %>% 
+  dplyr::select(year, month, period) %>% 
+  distinct() %>% 
+  mutate(date = period) %>% 
+  left_join(projects %>% dplyr::select(year, project, subproject)) %>% 
+  mutate(hours = 0, length = NA_real_)
+combined <- charges %>% 
+  bind_rows(blanks) %>% 
+  left_join(projects, by = c("year", "project", "subproject")) %>% 
   dplyr::filter(date >= startdate & date <= enddate) 
 
 
 # weekly and running totals ####
-weekly <- combined %>% 
+weekly <- charges %>% 
   arrange(period) %>% 
   group_by(period) %>% 
   summarise(
@@ -75,6 +83,7 @@ print(last_plot())
 
 # timesheet ####
 timesheet <- combined %>% 
+  dplyr::filter(period > done) %>% 
   mutate(
     wday = wday(date, week_start = 1, label = TRUE, abbr = TRUE),
     date = NULL,
@@ -96,9 +105,9 @@ timesheet <- combined %>%
     Week = sum(Total, na.rm = TRUE)
   ) %>% 
   ungroup() %>% 
-  dplyr::filter(period > done) %>% 
   dplyr::select(-subproject, -subcode) %>% 
-  arrange(period, project) 
+  arrange(period, project) %>% 
+  dplyr::filter(Total > 0)
 
 print(timesheet)
 
@@ -108,32 +117,34 @@ monthly <- combined %>%
   mutate(
     project2 = paste(project, subproject),
     code2 = paste(code, subcode),
-    npt = project %in% c("Admin", "Leave"),
   ) %>% 
   arrange(month, project2, code2) %>% 
-  dplyr::filter(!npt) %>% 
   dplyr::select(year, month, project2, code2, hours, budgeted, length) %>% 
-  complete(project2, month) %>% # fill gaps
+  complete(project2, month, fill = list(hours = 0)) %>% # fill gaps
   group_by(month) %>% 
   mutate(
     length = mean(length, na.rm = TRUE), # hours per day
-    year = if_else(month(month) >= 6, year(month), year(month) - 1), 
+    year = if_else(month(month) >= 6, year(month), year(month) - 1), # fill gaps
   ) %>% 
   group_by(year, project2) %>% 
   mutate(
+    code2 = if_else(is.na(code2), "0", code2), # fill gaps
     code2 = max(code2, na.rm = TRUE), # fill gaps
   ) %>% 
-  group_by(month, length, project2, code2) %>% 
+  group_by(year, month, length, project2, code2) %>% 
   summarise(
     budgeted = max(0, median(budgeted, na.rm = TRUE), na.rm = TRUE),
     hours = max(0, sum(hours, na.rm = TRUE)),
     profile = round(median(length) * 119 / 8), # target budget per month
     .groups = "keep"
   ) %>% 
-  group_by(month) %>% 
   mutate(
     project = str_extract(project2, "[A-Za-z]+"),
-    budgeted2 = round(pmax(0, budgeted * profile / sum(budgeted), na.rm = TRUE),1)
+  ) %>% 
+  dplyr::filter(!project %in% c("Admin", "Learning", "Leave")) %>% 
+  group_by(month) %>% 
+  mutate(
+    budgeted2 = round(pmax(0, budgeted * min(1, profile / sum(budgeted)), na.rm = TRUE),1)
   ) %>% 
   ungroup()
   
@@ -149,3 +160,13 @@ ggplot(monthly) +
 
 print(last_plot())
 
+
+# yearly project totals ####
+monthly %>% 
+  arrange(year, project) %>% 
+  group_by(year, project) %>% 
+  summarise(
+    budgeted = sum(budgeted),
+    hours = sum(hours)
+  )
+    
