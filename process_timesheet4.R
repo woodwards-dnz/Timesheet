@@ -11,12 +11,18 @@ library(lubridate)
 library(ggplot2)
 library(ggthemes)
 
-
 # options ####
 path <- "Timesheet2022.xlsx"
-done <- ymd("2022-05-30") # monday
+done <- ymd("2022-06-13") # monday
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
+# functions ####
+zero2na <- function(x){
+  ifelse(x <= 0, x * NA, x)
+}
+na2zero <- function(x){
+  ifelse(is.na(x), 0, x)
+}
 
 # read timesheet ####
 charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% drop_na(date) %>% 
@@ -91,7 +97,7 @@ timesheet <- combined %>%
   arrange(period, wday, project, subproject, code, subcode) %>% 
   group_by(period, wday, project, subproject, code, subcode) %>% 
   summarize(
-    hours = sum(hours),
+    hours = zero2na(sum(hours)),
     .groups = "keep"
   ) %>% 
   ungroup() %>% 
@@ -151,9 +157,9 @@ monthly <- combined %>%
 ggplot(monthly) +
   theme_grey() +
   labs(fill = "Project hours", colour = "", x = "Month", y = "Hours") +
-  geom_col(aes(x = month, y = hours, fill = project), position = "dodge") +
-  geom_col(aes(x = month, y = budgeted, fill = project), alpha = 0, colour = "black", position = "dodge", linetype = 2) +
-  geom_col(aes(x = month, y = budgeted2, fill = project), alpha = 0, colour = "black", position = "dodge") +
+  geom_col(aes(x = month, y = hours, fill = project), colour = NA, alpha = 0.4, position = "dodge") +
+  geom_col(aes(x = month, y = budgeted, colour = project), fill = NA, position = "dodge", linetype = 2) +
+  geom_col(aes(x = month, y = budgeted2, colour = project), fill = NA, position = "dodge") +
   scale_x_date(date_breaks = "1 months", date_labels = "%e %b") +
   guides(colour = "none") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
