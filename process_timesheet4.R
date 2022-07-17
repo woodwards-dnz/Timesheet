@@ -12,8 +12,9 @@ library(ggplot2)
 library(ggthemes)
 
 # options ####
+options(dplyr.summarise.inform = FALSE)
 path <- "Timesheet2022.xlsx"
-done <- ymd("2022-06-13") # monday
+done <- ymd("2022-07-11") # monday
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
 # functions ####
@@ -52,7 +53,7 @@ blanks <- charges %>%
   dplyr::select(year, month, period) %>% 
   distinct() %>% 
   mutate(date = period) %>% 
-  left_join(projects %>% dplyr::select(year, project, subproject)) %>% 
+  left_join(projects %>% dplyr::select(year, project, subproject), by = "year") %>% 
   mutate(hours = 0, length = NA_real_)
 combined <- charges %>% 
   bind_rows(blanks) %>% 
