@@ -14,7 +14,7 @@ library(ggthemes)
 # options ####
 options(dplyr.summarise.inform = FALSE)
 path <- "Timesheet2022.xlsx"
-done <- ymd("2022-07-11") # monday
+done <- ymd("2022-09-05") # monday
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
 # functions ####
@@ -62,6 +62,8 @@ combined <- charges %>%
 
 
 # weekly and running totals ####
+print("Weekly and Running Totals:")
+
 weekly <- charges %>% 
   arrange(period) %>% 
   group_by(period) %>% 
@@ -75,7 +77,7 @@ weekly <- charges %>%
   ) 
 
 ggplot(weekly) +
-  labs(fill = "", colour = "", x = "Week", y = "Hours") +
+  labs(title = "Weekly and Running Totals", fill = "", colour = "", x = "Week", y = "Hours") +
   geom_col(aes(x = period, y = weekhours, fill = "Week Hours")) +
   geom_hline(yintercept = seq(7.2,36,7.2), linetype = 2) +
   geom_line(aes(x = period, y = balance, colour = "Balance"), size = 1.5) +
@@ -89,6 +91,8 @@ print(last_plot())
 
 
 # timesheet ####
+print("Timesheet Table:")
+
 timesheet <- combined %>% 
   dplyr::filter(period > done) %>% 
   mutate(
@@ -120,6 +124,8 @@ print(timesheet)
 
 
 # monthly project totals ####
+print("Monthly Project Budgets:")
+
 monthly <- combined %>%
   mutate(
     project2 = paste(project, subproject),
@@ -157,7 +163,7 @@ monthly <- combined %>%
   
 ggplot(monthly) +
   theme_grey() +
-  labs(fill = "Project hours", colour = "", x = "Month", y = "Hours") +
+  labs(title = "Monthly Project Budgets", fill = "Project", colour = "", x = "Month", y = "Hours") +
   geom_col(aes(x = month, y = hours, fill = project), colour = NA, alpha = 0.4, position = "dodge") +
   geom_col(aes(x = month, y = budgeted, colour = project), fill = NA, position = "dodge", linetype = 2) +
   geom_col(aes(x = month, y = budgeted2, colour = project), fill = NA, position = "dodge") +
@@ -167,13 +173,29 @@ ggplot(monthly) +
 
 print(last_plot())
 
+ggplot(monthly) +
+  theme_grey() +
+  labs(title = "Monthly Project Budgets", fill = "Project", colour = "", x = "Month", y = "Hours") +
+  geom_col(aes(x = project, y = hours, fill = project), colour = NA, alpha = 0.4, position = "dodge") +
+  geom_col(aes(x = project, y = budgeted, colour = project), fill = NA, position = "dodge", linetype = 2) +
+  geom_col(aes(x = project, y = budgeted2, colour = project), fill = NA, position = "dodge") +
+  # scale_x_date(date_breaks = "1 months", date_labels = "%e %b") +
+  guides(colour = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  facet_wrap("month", labeller = function(x) format(x, '%b-%y'))
+
+print(last_plot())
+
 
 # yearly project totals ####
+print("Yearly Project Totals:")
+
 monthly %>% 
   arrange(year, project) %>% 
   group_by(year, project) %>% 
   summarise(
     budgeted = sum(budgeted),
     hours = sum(hours)
-  )
+  ) %>% 
+  dplyr::filter(budgeted + hours > 0)
     
