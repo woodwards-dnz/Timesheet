@@ -126,10 +126,14 @@ print(timesheet)
 # monthly project totals ####
 print("Monthly Project Budgets:")
 
+NPT <- c("Admin", "Learning", "Leave")
+NPTbudgeted <- 174 - 119
+  
 monthly <- combined %>%
   mutate(
-    project2 = paste(project, subproject),
-    code2 = paste(code, subcode),
+    project2 = ifelse(project %in% NPT, "NPT", paste(project, subproject)),
+    code2 = ifelse(project %in% NPT, "NPT", paste(code, subcode)),
+    budgeted = ifelse(project %in% NPT, length / 8 * NPTbudgeted, budgeted),
   ) %>% 
   arrange(month, project2, code2) %>% 
   dplyr::select(year, month, project2, code2, hours, budgeted, length) %>% 
@@ -144,6 +148,7 @@ monthly <- combined %>%
     code2 = if_else(is.na(code2), "0", code2), # fill gaps
     code2 = max(code2, na.rm = TRUE), # fill gaps
   ) %>% 
+  arrange(year, month, length, project2, code2) %>% 
   group_by(year, month, length, project2, code2) %>% 
   summarise(
     budgeted = max(0, median(budgeted, na.rm = TRUE), na.rm = TRUE),
@@ -154,10 +159,10 @@ monthly <- combined %>%
   mutate(
     project = str_extract(project2, "[A-Za-z]+"),
   ) %>% 
-  dplyr::filter(!project %in% c("Admin", "Learning", "Leave")) %>% 
+  # dplyr::filter(!isnpt) %>% 
   group_by(month) %>% 
   mutate(
-    budgeted2 = round(pmax(0, budgeted * min(1, profile / sum(budgeted)), na.rm = TRUE),1)
+    budgeted2 = round(pmax(0, budgeted * min(1, profile / sum(budgeted[project != "NPT"])), na.rm = TRUE), 1)
   ) %>% 
   ungroup()
   
@@ -195,7 +200,7 @@ monthly %>%
   group_by(year, project) %>% 
   summarise(
     months = n_distinct(month),
-    profile = median(profile),
+    # profile = median(profile),
     budget = round(sum(budgeted),0),
     hours = round(sum(hours),0),
     budget_month = round(sum(budget) / months,0),
