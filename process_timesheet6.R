@@ -11,10 +11,15 @@ library(lubridate)
 library(ggplot2)
 library(ggthemes)
 
+# close Excel ####
+print("WARNING --- closing Excel!!!")
+system("taskkill /IM Excel.exe")
+
 # options ####
 options(dplyr.summarise.inform = FALSE)
 path <- "Timesheet2023.xlsx"
-done <- ymd("2022-12-26") # monday
+done <- ymd("2023-04-10") # monday
+print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
 # functions ####
@@ -26,7 +31,7 @@ na2zero <- function(x){
 }
 
 # read timesheet ####
-charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% drop_na(date) %>% 
+charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% drop_na(date, hours) %>% 
   mutate(
     date = as_date(date),
     period = as_date(period),
@@ -36,6 +41,7 @@ charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% d
   ) %>% 
   dplyr::select(year, month, period, date, project, subproject, hours, length)
 
+print(paste("Timesheet to", max(charges$date)))
 
 # read projects
 projects <- read_excel(path, sheet = "Projects", skip = 1) %>% clean_names() %>% 
@@ -47,13 +53,14 @@ projects <- read_excel(path, sheet = "Projects", skip = 1) %>% clean_names() %>%
   ) %>% 
   dplyr::select(year, startdate, enddate, project, subproject, code, subcode, budgeted, profile)
 
+print(paste("Projects to", max(projects$enddate)))
 
 # combine
 blanks <- charges %>% 
   dplyr::select(year, month, period) %>% 
   distinct() %>% 
   mutate(date = period) %>% 
-  left_join(projects %>% dplyr::select(year, project, subproject), by = "year") %>% 
+  left_join(projects %>% dplyr::select(year, project, subproject), by = "year", multiple = "all", relationship = "many-to-many") %>% 
   mutate(hours = 0, length = NA_real_)
 combined <- charges %>% 
   bind_rows(blanks) %>% 
@@ -62,7 +69,7 @@ combined <- charges %>%
 
 
 # weekly and running totals ####
-print("Weekly and Running Totals:")
+print("Plot Weekly and Running Totals:")
 
 weekly <- charges %>% 
   arrange(period) %>% 
@@ -80,7 +87,7 @@ ggplot(weekly) +
   labs(title = "Weekly and Running Totals", fill = "", colour = "", x = "Week", y = "Hours") +
   geom_col(aes(x = period, y = weekhours, fill = "Week Hours")) +
   geom_hline(yintercept = seq(7.2,36,7.2), linetype = 2) +
-  geom_line(aes(x = period, y = balance, colour = "Balance"), size = 1.5) +
+  geom_line(aes(x = period, y = balance, colour = "Balance"), linewidth = 1.5) +
   geom_point(aes(x = period, y = balance, colour = "Balance", fill = "Balance"), size = 4) +
   scale_x_date(date_breaks = "1 weeks", date_labels = "%e %b") +
   guides(colour = "none") +
@@ -124,7 +131,7 @@ print(timesheet)
 
 
 # monthly project totals ####
-print("Monthly Project Budgets:")
+print("Plot Monthly Project Budgets:")
 
 NPT <- c("Admin", "Learning", "Leave")
 NPTbudgeted <- 174 - 119

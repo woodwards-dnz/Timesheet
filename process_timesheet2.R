@@ -13,7 +13,7 @@ suppressMessages({suppressWarnings({
 
 
 # options ####
-path <- "Timesheet2022.xlsx"
+path <- "Timesheet2023.xlsx"
 done <- ymd("2022-05-16") # monday
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
