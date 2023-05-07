@@ -14,11 +14,12 @@ library(ggthemes)
 # close Excel ####
 print("WARNING --- closing Excel!!!")
 system("taskkill /IM Excel.exe")
+Sys.sleep(1)
 
 # options ####
 options(dplyr.summarise.inform = FALSE)
 path <- "Timesheet2023.xlsx"
-done <- ymd("2023-04-10") # monday
+done <- ymd("2023-05-01") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
