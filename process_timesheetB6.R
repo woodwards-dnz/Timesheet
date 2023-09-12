@@ -18,8 +18,8 @@ Sys.sleep(1)
 
 # options ####
 options(dplyr.summarise.inform = FALSE)
-path <- "Timesheet2023.xlsx"
-done <- ymd("2023-09-04") # monday
+path <- "TimesheetB2023.xlsx"
+done <- ymd("2023-07-31") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
