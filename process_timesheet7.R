@@ -1,10 +1,15 @@
 
+
 # timesheet analysis ####
 
+options(conflicts.policy = "depends.ok")
+options(dplyr.summarise.inform = FALSE)
 library(stringr)
 library(readxl)
-library(janitor)
-library(plyr) # avoid dplyr bug
+# install.packages("janitor", repos = "http://cran.r-project.org", lib = "local_packages")
+library(janitor, lib = "local_packages")
+# library(janitor) 
+# library(plyr) # avoid dplyr bug
 library(dplyr)
 library(tidyr)
 library(lubridate)
@@ -17,9 +22,8 @@ system("taskkill /IM Excel.exe")
 Sys.sleep(1)
 
 # options ####
-options(dplyr.summarise.inform = FALSE)
 path <- "Timesheet2023.xlsx"
-done <- ymd("2023-09-04") # monday
+done <- ymd("2024-01-01") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
@@ -29,6 +33,13 @@ zero2na <- function(x){
 }
 na2zero <- function(x){
   ifelse(is.na(x), 0, x)
+}
+enspace <- function(.x, def = " - "){
+  if (is.numeric(.x)){
+    if_else(is.na(.x), def, sprintf("%0.1f", .x))
+  } else {
+    .x
+  }
 }
 
 # read timesheet ####
@@ -40,7 +51,7 @@ charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% d
     month = dmy(paste("1", month(date), year(date))),
     year = if_else(month(date) >= 6, year(date), year(date) - 1),
   ) %>% 
-  dplyr::select(year, month, period, date, project, code, hours, length) %>% 
+  select(year, month, period, date, project, code, hours, length) %>% 
   arrange(date, project, code) %>% 
   group_by(project) %>% 
   fill(code) %>% # fill code down
@@ -58,16 +69,16 @@ projects <- charges %>%
   ) %>% 
   ungroup()
 blanks <- charges %>% 
-  dplyr::select(year, month, period) %>% 
+  select(year, month, period) %>% 
   distinct() %>% 
   mutate(date = period) %>% 
   left_join(projects, by = "year", multiple = "all", relationship = "many-to-many") %>% 
   mutate(hours = 0, length = NA_real_) %>% 
-  dplyr::select(-startdate, -enddate)
+  select(-startdate, -enddate)
 combined <- charges %>% 
   bind_rows(blanks) %>% 
   left_join(projects, by = c("year", "project", "code")) %>% 
-  dplyr::filter(date >= startdate & date <= enddate) 
+  filter(date >= startdate & date <= enddate) 
 
 # weekly and running totals ####
 print("Plot Weekly and Running Totals:")
@@ -102,7 +113,7 @@ print(last_plot())
 print("Timesheet Table:")
 
 timesheet <- combined %>% 
-  dplyr::filter(period > done) %>% 
+  filter(period > done) %>% 
   mutate(
     wday = wday(date, week_start = 1, label = TRUE, abbr = TRUE),
     date = NULL,
@@ -125,9 +136,13 @@ timesheet <- combined %>%
   ) %>% 
   ungroup() %>% 
   arrange(period, project) %>% 
-  dplyr::filter(Total > 0)
+  filter(Total > 0)
 
-print(timesheet)
+# print table
+timesheet %>% 
+  as.data.frame() %>%
+  mutate(across(everything(), enspace)) %>% 
+  print()
 
 
 # monthly project totals ####
@@ -142,7 +157,7 @@ monthly <- combined %>%
     code2 = ifelse(project %in% NPT, "NPT", code),
   ) %>% 
   arrange(month, project2, code2) %>% 
-  dplyr::select(year, month, project2, code2, hours, length) %>% 
+  select(year, month, project2, code2, hours, length) %>% 
   complete(project2, month, fill = list(hours = 0)) %>% # fill gaps
   group_by(month) %>% 
   mutate(
@@ -199,5 +214,6 @@ monthly %>%
     hours = round(sum(hours),0),
     hours_month = round(sum(hours) / months,0),
   ) %>% 
-  dplyr::filter(hours > 0)
+  filter(hours > 0) %>% 
+  as.data.frame()
     
