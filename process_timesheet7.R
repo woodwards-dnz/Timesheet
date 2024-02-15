@@ -22,8 +22,8 @@ system("taskkill /IM Excel.exe")
 Sys.sleep(1)
 
 # options ####
-path <- "Timesheet2023.xlsx"
-done <- ymd("2024-01-01") # monday
+path <- "Timesheet2024.xlsx"
+done <- ymd("2024-02-05") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
