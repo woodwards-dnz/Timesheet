@@ -23,7 +23,7 @@ Sys.sleep(1)
 
 # options ####
 path <- "Timesheet2024.xlsx"
-done <- ymd("2024-02-05") # monday
+done <- ymd("2024-05-20") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
@@ -132,7 +132,8 @@ timesheet <- combined %>%
   group_by(period) %>% 
   mutate(
     period = as_date(period),
-    Week = sum(Total, na.rm = TRUE)
+    Sheet = sum(Total[project != "Admin"], na.rm = TRUE),
+    Week = sum(Total, na.rm = TRUE),
   ) %>% 
   ungroup() %>% 
   arrange(period, project) %>% 
