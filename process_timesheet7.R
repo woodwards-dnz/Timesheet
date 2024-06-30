@@ -2,6 +2,8 @@
 
 # timesheet analysis ####
 
+# https://rfortherestofus.com/2021/02/how-to-use-git-github-with-r
+
 options(conflicts.policy = "depends.ok")
 options(dplyr.summarise.inform = FALSE)
 library(stringr)
@@ -23,7 +25,7 @@ Sys.sleep(1)
 
 # options ####
 path <- "Timesheet2024.xlsx"
-done <- ymd("2024-05-20") # monday
+done <- ymd("2024-06-24") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
