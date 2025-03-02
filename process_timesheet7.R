@@ -24,8 +24,8 @@ system("taskkill /IM Excel.exe")
 Sys.sleep(1)
 
 # options ####
-path <- "Timesheet2024.xlsx"
-done <- ymd("2024-06-24") # monday
+path <- "Timesheet2025.xlsx"
+done <- ymd("2025-02-17") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
@@ -45,7 +45,8 @@ enspace <- function(.x, def = " - "){
 }
 
 # read timesheet ####
-charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% drop_na(date, hours) %>% 
+charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% 
+  drop_na(date, hours) %>% 
   mutate(
     date = as_date(date),
     period = as_date(period),
@@ -58,7 +59,15 @@ charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>% d
   group_by(project) %>% 
   fill(code) %>% # fill code down
   ungroup()
-stopifnot(all(!is.na(charges$code)))
+if (any(is.na(charges$project) | is.na(charges$code))){
+  print("WARNING --- Missing project name or charge code!!!")
+  charges %>% 
+    dplyr::filter(is.na(project) | is.na(code)) %>% 
+    pull(date) %>% 
+    print()
+  charges <- charges %>% 
+    drop_na(project, code)
+}
 
 print(paste("Timesheet to", max(charges$date)))
 
@@ -192,7 +201,7 @@ ggplot(monthly) +
   guides(colour = "none") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
-print(last_plot())
+# print(last_plot())
 
 ggplot(monthly) +
   theme_grey() +
@@ -202,14 +211,14 @@ ggplot(monthly) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   facet_wrap("month", labeller = function(x) format(x, '%b-%y'))
 
-print(last_plot())
+# print(last_plot())
+plotly::ggplotly()
 
 
 # yearly project totals ####
 print("Yearly Project Totals:")
 
 monthly %>% 
-  arrange(year, project) %>% 
   group_by(year, project) %>% 
   summarise(
     months = n_distinct(month),
@@ -218,5 +227,6 @@ monthly %>%
     hours_month = round(sum(hours) / months,0),
   ) %>% 
   filter(hours > 0) %>% 
+  arrange(project, year) %>% 
   as.data.frame()
     
