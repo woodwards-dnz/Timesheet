@@ -25,7 +25,7 @@ Sys.sleep(1)
 
 # options ####
 path <- "Timesheet2025.xlsx"
-done <- ymd("2025-02-17") # monday
+done <- ymd("2025-05-26") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
@@ -227,6 +227,6 @@ monthly %>%
     hours_month = round(sum(hours) / months,0),
   ) %>% 
   filter(hours > 0) %>% 
-  arrange(project, year) %>% 
+  # arrange(project, year) %>% 
   as.data.frame()
     
