@@ -25,7 +25,7 @@ Sys.sleep(1)
 
 # options ####
 path <- "Timesheet2025.xlsx"
-done <- ymd("2025-05-26") # monday
+done <- ymd("2025-08-25") # monday
 print(paste("Done to", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
@@ -195,7 +195,7 @@ monthly <- combined %>%
   
 ggplot(monthly) +
   theme_grey() +
-  labs(title = "Monthly Project Budgets", fill = "Project", colour = "", x = "Month", y = "Hours") +
+  labs(title = "Monthly Project Budgets", fill = "Project", x = "Month", y = "Hours") +
   geom_col(aes(x = month, y = hours, fill = project), colour = NA, alpha = 0.4, position = "dodge") +
   scale_x_date(date_breaks = "1 months", date_labels = "%e %b") +
   guides(colour = "none") +
@@ -205,7 +205,7 @@ ggplot(monthly) +
 
 ggplot(monthly) +
   theme_grey() +
-  labs(title = "Monthly Project Budgets", fill = "Project", colour = "", x = "Month", y = "Hours") +
+  labs(title = "Monthly Project Budgets", fill = "Project", x = "Month", y = "Hours") +
   geom_col(aes(x = project, y = hours, fill = project), colour = NA, alpha = 0.4, position = "dodge") +
   guides(colour = "none") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
@@ -230,3 +230,16 @@ monthly %>%
   # arrange(project, year) %>% 
   as.data.frame()
     
+# monthly project totals ####
+print("Monthly Project Totals:")
+
+monthly %>% 
+  group_by(year, project2, code2, month) %>% 
+  summarise(
+    hours = round(sum(hours),0),
+  ) %>% 
+  filter(hours > 0) %>% 
+  arrange(year, project2, code2, month) %>%
+  filter(project2 == "Comfort") %>% 
+  as.data.frame()
+
