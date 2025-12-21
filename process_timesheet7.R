@@ -25,8 +25,9 @@ Sys.sleep(1)
 
 # options ####
 path <- "Timesheet2025.xlsx"
-done <- ymd("2025-08-25") # monday
-print(paste("Done to", done))
+done <- ymd("2025-12-01") # monday
+print(paste("Reading", path))
+print(paste("From", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
 
 # functions ####
@@ -54,7 +55,9 @@ charges <- read_excel(path, sheet = "Charges", skip = 1) %>% clean_names() %>%
     month = dmy(paste("1", month(date), year(date))),
     year = if_else(month(date) >= 6, year(date), year(date) - 1),
   ) %>% 
-  select(year, month, period, date, project, code, hours, length) %>% 
+  select(year, month, period, date, project, code, hours, length) 
+saveRDS(charges, "charges.rds") # backup to OneDrive
+charges <- charges %>% 
   arrange(date, project, code) %>% 
   group_by(project) %>% 
   fill(code) %>% # fill code down
