@@ -24,8 +24,8 @@ system("taskkill /IM Excel.exe")
 Sys.sleep(1)
 
 # options ####
-path <- "Timesheet2025.xlsx"
-done <- ymd("2025-12-01") # monday
+path <- "Timesheet2026.xlsx"
+done <- ymd("2026-01-05") # monday
 print(paste("Reading", path))
 print(paste("From", done))
 wdays <- wday(done + days(0:6), week_start = 1, label = TRUE, abbr = TRUE)
@@ -102,11 +102,16 @@ weekly <- charges %>%
   group_by(period) %>% 
   summarise(
     weekhours = sum(hours),
-    weektarget = median(length),
+    weektarget = median(length) * 5,
   ) %>% 
   ungroup() %>% 
   mutate(
-    balance = cumsum(weekhours) - (seq(n()) - 1) * weektarget * 5  
+    cumhours = cumsum(weekhours),
+    cumtarget = cumsum(weektarget),
+    # cumtarget = cumsum(lag(weektarget, default = 0)),
+    balance = cumhours - cumtarget,
+    balance = if_else(row_number() == n(), NA, balance), # don't include this week
+    # balance = cumsum(weekhours) - cumsum(lag(weektarget, default = 0)), 
   ) 
 
 ggplot(weekly) +
@@ -243,6 +248,6 @@ monthly %>%
   ) %>% 
   filter(hours > 0) %>% 
   arrange(year, project2, code2, month) %>%
-  filter(project2 == "Comfort") %>% 
+  filter(project2 == "Fertility") %>% 
   as.data.frame()
 
